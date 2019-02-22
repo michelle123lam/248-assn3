@@ -40,14 +40,31 @@ void main(void)
 
        // (3) obj2worldNorm is a 3x3 matrix transforming object space normals to world space normals
 
-       
-       // pass through object-space normal unmodified to fragment shader
-       normal = vtx_normal;
+      // Tangent space > object space > world space
+      // N = z-axis; w; vtx_normal
+      // B = y-axis; v
+      // T = x-axis; u; vtx_tangent
+
+      vec3 B = normalize(cross(vtx_normal, vtx_tangent));
+      
+      // vec3 a, b, c;
+      // set a, b, c
+      vec3 T = normalize(vtx_tangent);
+      vec3 N = normalize(-vtx_normal);
+      mat3 rotMatrix = mat3(T, B, N);
+      // rotMatrix.T();
+      // rotMatrix = T(rotMatrix);
+
+      // pass through object-space normal unmodified to fragment shader
+      normal = vtx_normal;
+      // mat3 tan2obj = rotMatrix * vtx_normal;
+      // tan2world = obj2worldNorm * tan2obj;
+      tan2world = obj2worldNorm * rotMatrix;
        
     } else {
     
-       // just transform normal into world space 
-       normal = obj2worldNorm * vtx_normal; 
+      // just transform normal into world space 
+      normal = obj2worldNorm * vtx_normal; 
     }
 
     vertex_diffuse_color = vtx_diffuse_color;
