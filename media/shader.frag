@@ -121,7 +121,19 @@ vec3 SampleEnvironmentMap(vec3 D)
      // (3) How do you convert theta and phi to normalized texture
      //     coordinates in the domain [0,1]^2?
 
-     return vec3(.25, .25, .25);
+    // float phi = atan(D[0], D[2]) + PI;
+    float phi = atan(D[0], D[2]);
+    if (phi < 0.) {
+        phi += (2. * PI);
+    }
+    float r = sqrt(pow(D[0], 2.) + pow(D[1], 2.) + pow(D[2], 2.));
+    float theta = acos(D[1] / r);
+    vec2 envCoord = vec2((phi / (2. * PI)), (theta / PI));
+
+    vec3 envColor = texture2D(environmentTextureSampler, envCoord).rgb;
+    return envColor;
+
+     // return vec3(.25, .25, .25);
 }
 
 //
@@ -179,7 +191,10 @@ void main(void)
         // TODO: CS248 PART 3: compute perfect mirror reflection direction here.
         // You'll also need to implement environment map sampling in SampleEnvironmentMap()
         //
-        vec3 R = normalize(vec3(1.0));
+        // vec3 R = normalize(vec3(1.0));
+        vec3 w_i = normalize(dir2camera);
+        vec3 R = -(w_i) + 2. * dot(w_i, N) * N;
+
         // sample environment map
         vec3 envColor = SampleEnvironmentMap(R);
         
