@@ -152,7 +152,7 @@ void main(void)
     if (useNormalMapping) {
 
        // TODO: CS248 PART 2: use tan2World in the normal map to compute the
-       // world space normal baaed on the normal map.
+       // world space normal based on the normal map.
 
        // Note that values from the texture should be scaled by 2 and biased
        // by negative -1 to covert positive values from the texture fetch, which
@@ -161,10 +161,13 @@ void main(void)
        // In other words:   tangent_space_normal = texture_value * 2.0 - 1.0;
 
        // replace this line with your implementation
-       N = normalize(normal);
+       // vec4 normalVal = texture2D(normalTextureSampler, texcoord);
+        vec3 normalVal = texture2D(normalTextureSampler, texcoord).rgb * 2.0 - 1.0;
+        normalVal = normalize(normalVal);
+        N = normalize(tan2world * normalVal);
 
     } else {
-       N = normalize(normal);
+        N = normalize(normal);
     }
 
     vec3 V = normalize(dir2camera);

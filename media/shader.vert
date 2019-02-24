@@ -45,20 +45,15 @@ void main(void)
       // B = y-axis; v
       // T = x-axis; u; vtx_tangent
 
-      vec3 B = normalize(cross(vtx_normal, vtx_tangent));
-      
-      // vec3 a, b, c;
-      // set a, b, c
+      // had flipped cross product order for B; had order mixed-up for construction of rotMatrix mat3
+
+      vec3 B = normalize(cross(vtx_tangent, vtx_normal));
       vec3 T = normalize(vtx_tangent);
-      vec3 N = normalize(-vtx_normal);
+      vec3 N = normalize(vtx_normal);
       mat3 rotMatrix = mat3(T, B, N);
-      // rotMatrix.T();
-      // rotMatrix = T(rotMatrix);
 
       // pass through object-space normal unmodified to fragment shader
-      normal = vtx_normal;
-      // mat3 tan2obj = rotMatrix * vtx_normal;
-      // tan2world = obj2worldNorm * tan2obj;
+      // normal = vtx_normal;
       tan2world = obj2worldNorm * rotMatrix;
        
     } else {
