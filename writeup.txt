@@ -1,0 +1,10 @@
+CS 248 Assignment 3
+Winter 2019
+---
+
+mlam4, gyoung
+All Tasks (1-4): Pair-programmed
+- Phong Reflectance
+- Normal Mapping
+- Environment Lighting
+- Spotlights and Shadows
