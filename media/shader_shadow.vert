@@ -42,6 +42,8 @@ void main(void)
     // to each shadowed light source.  In this assignment you'll consider scenes with
     // up to two shadowed light sources.
     //
+    position_shadowlight0 = obj2shadowlight0 * vec4(vtx_position, 1);
+    position_shadowlight1 = obj2shadowlight1 * vec4(vtx_position, 1);
 
     if (useNormalMapping) {
 
@@ -61,7 +63,13 @@ void main(void)
 
        
        // pass through object-space normal unmodified to fragment shader
-       normal = vtx_normal;
+      vec3 B = normalize(cross(vtx_tangent, vtx_normal));
+      vec3 T = normalize(vtx_tangent);
+      vec3 N = normalize(vtx_normal);
+      mat3 rotMatrix = mat3(T, B, N);
+
+      // pass through object-space normal unmodified to fragment shader
+      tan2world = obj2worldNorm * rotMatrix;
        
     } else {
     

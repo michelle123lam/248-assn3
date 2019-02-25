@@ -86,6 +86,17 @@ vec3 Phong_BRDF(vec3 L, vec3 V, vec3 N, vec3 diffuse_color, vec3 specular_color,
     // TODO CS248: PART 1: implement diffuse and specular terms of the Phong
     // reflectance model here.
     // 
+
+    vec3 R = 2. * dot(L, N) * N - L;
+    R = normalize(R);
+
+    if (dot((V + L), N) < 0. || dot(L, N) < 0. || dot(R, V) < 0.) {
+        // return diffuse_color;
+        return diffuse_color * dot(L, N);
+    }
+
+    diffuse_color = (diffuse_color * dot(L, N)) + (specular_color * pow(dot(R, V), specular_exponent));
+
     return diffuse_color;
 }
 
@@ -114,8 +125,17 @@ vec3 SampleEnvironmentMap(vec3 D)
      // (3) How do you convert theta and phi to normalized texture
      //     coordinates in the domain [0,1]^2?
 
-     return vec3(.25, .25, .25);
 
+    float phi = atan(D[0], D[2]);
+    if (phi < 0.) {
+        phi += (2. * PI);
+    }
+    float r = sqrt(pow(D[0], 2.) + pow(D[1], 2.) + pow(D[2], 2.));
+    float theta = acos(D[1] / r);
+    vec2 envCoord = vec2((phi / (2. * PI)), (theta / PI));
+
+    vec3 envColor = texture2D(environmentTextureSampler, envCoord).rgb;
+    return envColor;
 
 }
 
@@ -157,7 +177,9 @@ void main(void)
        // In other words:   tangent_space_normal = texture_value * 2.0 - 1.0;
 
        // replace this line with your implementation
-       N = normalize(normal);
+        vec3 normalVal = texture2D(normalTextureSampler, texcoord).rgb * 2.0 - 1.0;
+        normalVal = normalize(normalVal);
+        N = normalize(tan2world * normalVal);
 
     } else {
        N = normalize(normal);
@@ -171,8 +193,9 @@ void main(void)
         //
         // TODO: CS248 PART 3: compute perfect mirror reflection direction here.
         // You'll also need to implement environment map sampling in SampleEnvironmentMap()
-        //
-        vec3 R = normalize(vec3(1.0));
+        vec3 w_i = normalize(dir2camera);
+        vec3 R = -(w_i) + 2. * dot(w_i, N) * N;
+
         // sample environment map
         vec3 envColor = SampleEnvironmentMap(R);
         
@@ -239,15 +262,70 @@ void main(void)
         //    -- The reference solution uses SMOOTHING = 0.1, so 20% of the spotlight region is the smoothly
         //       facing out area.  Smaller values of SMOOTHING will create hard spotlights.
 
-        // CS248: remove this once you perform proper attenuation computations
-        intensity = vec3(0.5, 0.5, 0.5);
+        float smoothing = 0.1;
+        if (angle > (cone_angle * (1.0 + smoothing))) {
+            // Outside spotlight
+            intensity = vec3(0., 0., 0.);
+        } else {
+            // Within spotlight
+            float D = sqrt(
+                pow(light_pos[0] - position[0], 2.) + 
+                pow(light_pos[1] - position[1], 2.) +
+                pow(light_pos[2] - position[2], 2.)
+            );
+            intensity *= 1. /(1. + pow(D, 2.));
+
+            if (angle >= (cone_angle * (1.0 - smoothing))) {
+                // With attenuation
+                float cone_angle_per = (angle / cone_angle);
+                float attenuation_factor = 1. - ((cone_angle_per - 0.9) / 0.2);
+                intensity *= attenuation_factor;
+            }
+        }
 
         if (i<2) {
 
            if (i == 0) {
-              // CS248 TODO: Part 4: comute shadowing for spotlight 0 here 
+                // CS248 TODO: Part 4: comute shadowing for spotlight 0 here 
+                float pcf_step_size = 256.;
+                float num_in_shadow = 0.;
+                for (int j=-2; j<=2; j++) {
+                  for (int k=-2; k<=2; k++) {
+                     vec2 offset = vec2(j,k) / pcf_step_size;
+                     // sample shadow map at shadow_uv + offset
+                     // and test if the surface is in shadow according to this sample
+                    vec2 shadow_uv = position_shadowlight0.xy / position_shadowlight0.w;
+                    float shadowVal = texture2D(shadowTextureSampler0, shadow_uv + offset).z;
+                    if (((position_shadowlight0.z - 0.05) / position_shadowlight0.w) > shadowVal) {
+                        num_in_shadow += 1.;
+                    }
+                  }
+                }
+                // record the fraction (out of 25) of shadow tests that are in shadow
+                // and attenuate illumination accordingly
+                float shadow_frac = num_in_shadow / 25.;
+                intensity = intensity * (1. - shadow_frac);
+
            } else if (i == 1) {
-              // CS248 TODO: Part 4: comute shadowing for spotlight 1 here 
+                // CS248 TODO: Part 4: comute shadowing for spotlight 1 here 
+                float pcf_step_size = 256.;
+                float num_in_shadow = 0.;
+                for (int j=-2; j<=2; j++) {
+                  for (int k=-2; k<=2; k++) {
+                     vec2 offset = vec2(j,k) / pcf_step_size;
+                     // sample shadow map at shadow_uv + offset
+                     // and test if the surface is in shadow according to this sample
+                    vec2 shadow_uv = position_shadowlight1.xy / position_shadowlight1.w;
+                    float shadowVal = texture2D(shadowTextureSampler1, shadow_uv + offset).z;
+                    if (((position_shadowlight1.z - 0.05) / position_shadowlight1.w) > shadowVal) {
+                        num_in_shadow += 1.;
+                    }
+                  }
+                }
+                // record the fraction (out of 25) of shadow tests that are in shadow
+                // and attenuate illumination accordingly
+                float shadow_frac = num_in_shadow / 25.;
+                intensity = intensity * (1. - shadow_frac);
            }
         }
 
